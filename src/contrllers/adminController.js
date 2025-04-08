@@ -1,6 +1,4 @@
-const e = require("express");
 const Product = require("../models/product");
-const { where } = require("sequelize");
 
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/add-product", {
@@ -14,14 +12,18 @@ exports.getAddProduct = (req, res, next) => {
 };
 
 exports.postAddProduct = (req, res, next) => {
-  const { title, image_url, description, price, quantity } = req.body;
-  req.user
-    .createProduct({
-      title: title,
-      price: price,
-      imageUrl: image_url,
-      description: description,
-    })
+  const { title, image_url, description, price } = req.body;
+
+  const product = new Product({
+    title: title,
+    price: price,
+    description: description,
+    imageUrl: image_url,
+    userId: req.user,
+  });
+
+  product
+    .save()
     .then((result) => {
       console.log("Product created");
       return res.redirect("/admin/products");
@@ -35,31 +37,31 @@ exports.getEditProduct = (req, res, next) => {
   if (!editMode) {
     return res.redirect("/");
   }
-  req.user
-    .getProducts({ where: { id: prodId } })
-    .then((products) => {
+  Product.findById(prodId)
+    .then((product) => {
       res.render("admin/edit-product", {
         docTitle: "Edit Product",
         path: "/admin/edit-product",
         editing: editMode,
-        product: products[0],
+        product: product,
       });
     })
     .catch((err) => console.log(err));
 };
 
 exports.postEditProduct = (req, res, next) => {
-  const { id, title, image_url, description, price, quantity } = req.body;
-  Product.findByPk(id)
+  const { title, image_url, description, price, id } = req.body;
+
+  Product.findById(id)
     .then((product) => {
       product.title = title;
-      product.imageUrl = image_url;
       product.price = price;
       product.description = description;
+      product.imageUrl = image_url;
       return product.save();
     })
     .then((result) => {
-      console.log(result);
+      console.log("Product Updated");
       res.redirect("/admin/products");
     })
     .catch((err) => console.log(err));
@@ -67,10 +69,7 @@ exports.postEditProduct = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const { id } = req.body;
-  Product.findByPk(id)
-    .then((product) => {
-      return product.destroy();
-    })
+  Product.findByIdAndDelete({ _id: id })
     .then((result) => {
       res.redirect("/admin/products");
     })
@@ -78,8 +77,7 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.getAdminProducts = (req, res, next) => {
-  req.user
-    .getProducts()
+  Product.find()
     .then((products) => {
       res.render("admin/products", {
         prods: products,
