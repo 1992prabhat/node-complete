@@ -1,4 +1,6 @@
 const express = require("express");
+const isAuth = require("../middlewares/is-auth");
+
 const {
   getIndex,
   getProducts,
@@ -19,16 +21,16 @@ router.get("/products", getProducts);
 
 router.get("/products/:id", getProductDetails);
 
-router.get("/cart", getCart);
+router.get("/cart", isAuth, getCart);
 
-router.post("/cart", postCart);
+router.post("/cart", isAuth, postCart);
 
-router.post("/cart-delete-item", postCartDelete);
+router.post("/cart-delete-item", isAuth, postCartDelete);
 
-router.get("/checkout", getCheckout);
+router.get("/checkout", isAuth, getCheckout);
 
-router.post("/create-order", postOrder);
+router.post("/create-order", isAuth, postOrder);
 
-router.get("/orders", getOrders);
+router.get("/orders", isAuth, getOrders);
 
 module.exports = router;

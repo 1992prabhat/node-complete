@@ -37,14 +37,18 @@ exports.getEditProduct = (req, res, next) => {
   if (!editMode) {
     return res.redirect("/");
   }
-  Product.findById(prodId)
+  Product.findOne({ _id: prodId, userId: req.user._id })
     .then((product) => {
-      res.render("admin/edit-product", {
-        docTitle: "Edit Product",
-        path: "/admin/edit-product",
-        editing: editMode,
-        product: product,
-      });
+      if (product) {
+        return res.render("admin/edit-product", {
+          docTitle: "Edit Product",
+          path: "/admin/edit-product",
+          editing: editMode,
+          product: product,
+        });
+      } else {
+        res.redirect("/");
+      }
     })
     .catch((err) => console.log(err));
 };
@@ -54,22 +58,24 @@ exports.postEditProduct = (req, res, next) => {
 
   Product.findById(id)
     .then((product) => {
+      if (product.userId.toString() != req.user._id.toString()) {
+        return res.redirect("/");
+      }
       product.title = title;
       product.price = price;
       product.description = description;
       product.imageUrl = image_url;
-      return product.save();
-    })
-    .then((result) => {
-      console.log("Product Updated");
-      res.redirect("/admin/products");
+      return product.save().then((result) => {
+        console.log("Product Updated");
+        res.redirect("/admin/products");
+      });
     })
     .catch((err) => console.log(err));
 };
 
 exports.postDeleteProduct = (req, res, next) => {
   const { id } = req.body;
-  Product.findByIdAndDelete({ _id: id })
+  Product.deleteOne({ _id: id, userId: req.user._id })
     .then((result) => {
       res.redirect("/admin/products");
     })
@@ -77,7 +83,7 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.getAdminProducts = (req, res, next) => {
-  Product.find()
+  Product.find({ userId: req.user._id })
     .then((products) => {
       res.render("admin/products", {
         prods: products,
