@@ -11,7 +11,8 @@
 						<ul class="orders">
 							<% orders.forEach(order=> { %>
 								<li class="orders__item">
-									<h1>Order - # <%= order._id %>
+									<h1>Order - # <%= order._id %> <a href="/orders/<%= order._id %>">Download
+												Invoice</a>
 									</h1>
 									<h2> Order Total: $<%= order.orderTotal %>
 									</h2>

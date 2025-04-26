@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
-
+const { validationResult } = require("express-validator");
 const User = require("../models/user");
 const { hasSubscribers } = require("diagnostics_channel");
 
@@ -19,19 +19,32 @@ exports.getLogin = (req, res, next) => {
     path: "/login",
     docTitle: "Login",
     errorMessage: error,
+    oldInputs: {
+      email: "",
+      password: "",
+    },
+    validationErrors: [],
   });
 };
 
 exports.postLogin = (req, res, next) => {
   const { email, password } = req.body;
+  const errors = validationResult(req);
+  console.log(errors.array());
+  if (!errors.isEmpty()) {
+    return res.status(422).render("auth/login", {
+      path: "/login",
+      docTitle: "Login",
+      errorMessage: errors.array()[0].msg,
+      oldInputs: {
+        email: email,
+        password: password,
+      },
+      validationErrors: errors.array(),
+    });
+  }
   User.findOne({ email: email })
     .then((user) => {
-      if (!user) {
-        console.log("User does not exist");
-        req.flash("error", "Invalid Email or Password.");
-        return res.redirect("/login");
-      }
-
       bcrypt
         .compare(password, user.password)
         .then((doMatch) => {
@@ -50,7 +63,11 @@ exports.postLogin = (req, res, next) => {
           res.redirect("/login");
         });
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.getSignup = (req, res, next) => {
@@ -59,49 +76,64 @@ exports.getSignup = (req, res, next) => {
     path: "/signup",
     docTitle: "Signup",
     errorMessage: error,
+    oldInputs: {
+      email: "",
+      first_name: "",
+      last_name: "",
+      password: "",
+      confirmPassword: "",
+    },
+    validationErrors: [],
   });
 };
 
 exports.postSignup = (req, res, next) => {
   const { email, first_name, last_name, password, confirmPassword } = req.body;
-
-  User.findOne({ email: email })
-    .then((userDoc) => {
-      if (userDoc) {
-        req.flash("error", "User with email already exist.");
-        return res.redirect("/signup");
-      }
-      return bcrypt
-        .hash(password, 12)
-        .then((hashedPassword) => {
-          const user = new User({
-            username: email,
-            email: email,
-            password: hashedPassword,
-            first_name: first_name,
-            last_name: last_name,
-            cart: {
-              items: [],
-              cartTotal: 0,
-            },
-          });
-          return user.save();
-        })
-        .then((result) => {
-          res.redirect("/login");
-          return transporter.sendMail({
-            to: email,
-            from: "shop@node-compileClient.com",
-            subject: "Signup Suceess",
-            html: "<h1>You successfully signed up!</h1>",
-          });
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).render("auth/signup", {
+      path: "/signup",
+      docTitle: "Signup",
+      errorMessage: errors.array()[0].msg,
+      oldInputs: {
+        email: email,
+        first_name: first_name,
+        last_name: last_name,
+        password: password,
+        confirmPassword: confirmPassword,
+      },
+      validationErrors: errors.array(),
+    });
+  }
+  bcrypt
+    .hash(password, 12)
+    .then((hashedPassword) => {
+      const user = new User({
+        username: email,
+        email: email,
+        password: hashedPassword,
+        first_name: first_name,
+        last_name: last_name,
+        cart: {
+          items: [],
+          cartTotal: 0,
+        },
+      });
+      return user.save();
+    })
+    .then((result) => {
+      res.redirect("/login");
+      return transporter.sendMail({
+        to: email,
+        from: "shop@node-compileClient.com",
+        subject: "Signup Suceess",
+        html: "<h1>You successfully signed up!</h1>",
+      });
     })
     .catch((err) => {
-      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
 };
 
@@ -152,7 +184,11 @@ exports.postResetPassword = (req, res, next) => {
 								<p></p>`,
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => {
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
   });
 };
 
@@ -170,7 +206,11 @@ exports.getUpdatePassword = (req, res, next) => {
         userId: user._id.toString(),
       });
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postUpdatePassword = (req, res, next) => {
@@ -203,7 +243,11 @@ exports.postUpdatePassword = (req, res, next) => {
     .then((result) => {
       return res.redirect("/login");
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.getChangePassword = (req, res, next) => {
@@ -220,7 +264,11 @@ exports.getChangePassword = (req, res, next) => {
           userId: user._id.toString(),
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => {
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+      });
   } else {
     return res.redirect("/");
   }
@@ -257,5 +305,9 @@ exports.postChangePassword = (req, res, next) => {
           console.log(err);
         });
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };

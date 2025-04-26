@@ -11,6 +11,7 @@ const {
   getProductDetails,
   postCartDelete,
   postOrder,
+  getInvoice,
 } = require("../contrllers/shopController");
 
 const router = express.Router();
@@ -32,5 +33,7 @@ router.get("/checkout", isAuth, getCheckout);
 router.post("/create-order", isAuth, postOrder);
 
 router.get("/orders", isAuth, getOrders);
+
+router.get("/orders/:orderId", isAuth, getInvoice);
 
 module.exports = router;
