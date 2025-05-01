@@ -9,6 +9,7 @@ const {
   getEditProduct,
   postEditProduct,
   postDeleteProduct,
+  deleteProduct,
 } = require("../contrllers/adminController");
 
 const router = express.Router();
@@ -40,8 +41,10 @@ router.post(
   postEditProduct
 );
 
+router.get("/products", isAuth, getAdminProducts);
+
 router.post("/delete-product", isAuth, postDeleteProduct);
 
-router.get("/products", isAuth, getAdminProducts);
+router.delete("/product/:productId", isAuth, deleteProduct);
 
 module.exports = router;

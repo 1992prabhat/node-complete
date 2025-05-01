@@ -30,7 +30,11 @@ router.post("/cart-delete-item", isAuth, postCartDelete);
 
 router.get("/checkout", isAuth, getCheckout);
 
-router.post("/create-order", isAuth, postOrder);
+router.get("/checkout/success", isAuth, postOrder);
+
+router.get("/checkout/cancel", isAuth, getCheckout);
+
+// router.post("/create-order", isAuth, postOrder);
 
 router.get("/orders", isAuth, getOrders);
 

@@ -4,6 +4,7 @@ const Product = require("../models/product");
 const { validationResult } = require("express-validator");
 const fileHelper = require("../../utils/file");
 
+const ITEM_PER_PAGE = 10;
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/add-product", {
     docTitle: "Add Product",
@@ -164,10 +165,46 @@ exports.postDeleteProduct = (req, res, next) => {
     });
 };
 
+exports.deleteProduct = (req, res, next) => {
+  const prodId = req.params.productId;
+  Product.findById(prodId)
+    .then((product) => {
+      if (!product) {
+        return next(new Error("Product not found"));
+      }
+      fileHelper.deleteFile(product.imageUrl);
+      return Product.deleteOne({ _id: prodId, userId: req.user._id });
+    })
+    .then((result) => {
+      res.status(200).json({ message: "Success" });
+    })
+    .catch((err) => {
+      res.status(500).json({ message: "Deleting product failed" });
+    });
+};
+
 exports.getAdminProducts = (req, res, next) => {
+  let totalItems;
+  const page = +req.query.page || 1;
   Product.find({ userId: req.user._id })
+    .countDocuments()
+    .then((numProducts) => {
+      totalItems = numProducts;
+      return Product.find({ userId: req.user._id })
+        .skip((page - 1) * ITEM_PER_PAGE)
+        .limit(ITEM_PER_PAGE);
+    })
     .then((products) => {
+      console.log(page);
+      console.log(ITEM_PER_PAGE * page);
+      console.log(totalItems);
       res.render("admin/products", {
+        currentPage: page,
+        hasNextPage: ITEM_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEM_PER_PAGE),
         prods: products,
         docTitle: "All Prodcuts",
         path: "/admin/products",
